@@ -94,17 +94,23 @@ Then we can assign `rob2` back to `rob`, and `skip2` back to `skip`.
 // Author: github.com/lzl124631x
 // Time: O(N)
 // Space: O(1)
+
 class Solution {
 public:
     int rob(vector<int>& A) {
         int rob = 0, skip = 0;
+        
         for (int n : A) {
-            int r = n + skip, s = max(rob, skip);
-            rob = r, skip = s;
+            int newRob = n + skip;
+            int newSkip = max(rob, skip);
+            rob = newRob;
+            skip = newSkip;
         }
+        
         return max(rob, skip);
     }
 };
+
 ```
 
 Further more, since `skip` is the only one required by both `rob2` and `skip2`, we can do the following:
