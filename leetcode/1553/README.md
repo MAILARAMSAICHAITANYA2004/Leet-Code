@@ -86,12 +86,14 @@ Thus the conclusion is taht we should always at most take `2` consecutive `-1` o
 // Time: O(logN)
 // Space: O(logN)
 class Solution {
-    unordered_map<int, int> m;
+    unordered_map<int, int> m; // memoization to store results
 public:
     int minDays(int n) {
-        if (n <= 1) return n;
-        if (m.count(n)) return m[n];
+        if (n <= 1) return n; // base case: if 0 or 1 oranges
+        if (m.count(n)) return m[n]; // return cached result if exists
+        // Calculate the minimum days using recursion
         return m[n] = 1 + min(minDays(n / 3) + n % 3, minDays(n / 2) + n % 2);
     }
 };
+
 ```
