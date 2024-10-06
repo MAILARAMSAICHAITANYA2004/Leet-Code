@@ -78,6 +78,10 @@ It can be shown that there are no other paths with a higher safeness factor.
 1. BFS to calculate the distance to thieves for each node.
 2. Dijkstra to calculate the maximum safeness factor.
 
+The solution calculates the maximum safeness factor for a path from the top-left to the bottom-right corner of a grid containing bombs. It first uses a Breadth-First Search (BFS) to determine the distance from each bomb to all 
+other cells in the grid, populating the dist array. Then, it employs a priority queue (max-heap) to implement a Dijkstra-like algorithm, maximizing the safeness factor along the path. Starting from the top-left cell, 
+it explores neighboring cells, updating their safeness factors based on the minimum distance to the nearest bomb. If the bottom-right corner is reached, the maximum safeness factor is returned; otherwise, -1 is returned if no valid path exists.
+
 ```cpp
 // OJ: https://leetcode.com/problems/find-the-safest-path-in-a-grid
 // Author: github.com/lzl124631x
@@ -89,13 +93,17 @@ public:
         int N = A.size(), dirs[4][2] = {{0,1},{0,-1},{1,0},{-1,0}};
         vector<vector<int>> dist(N, vector<int>(N, INT_MAX)), factor(N, vector<int>(N, -1));
         queue<pair<int, int>> q;
+
+        // Initialize distances for cells with bombs
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < N; ++j) {
-                if (A[i][j] == 0) continue;
+                if (A[i][j] == 0) continue; // Skip empty cells
                 q.emplace(i, j);
-                dist[i][j] = 0;
+                dist[i][j] = 0; // Bomb distance is 0
             }
         }
+
+        // BFS to calculate the distance from bombs
         while (q.size()) {
             int cnt = q.size();
             while (cnt--) {
@@ -103,36 +111,44 @@ public:
                 q.pop();
                 for (auto &[dx, dy] : dirs) {
                     int a = x + dx, b = y + dy;
+                    // Update distances for unvisited cells
                     if (a < 0 || a >= N || b < 0 || b >= N || dist[a][b] != INT_MAX) continue;
                     dist[a][b] = 1 + dist[x][y];
                     q.emplace(a, b);
                 }
             }
         }
+
         typedef array<int, 3> Node; // factor, x, y
-        priority_queue<Node> pq;
-        factor[0][0] = dist[0][0];
+        priority_queue<Node> pq; // Max-heap for safeness factors
+        factor[0][0] = dist[0][0]; // Initialize factor for starting cell
         pq.push({factor[0][0], 0, 0});
+
+        // Dijkstra-like approach to find the maximum safeness factor path
         while (pq.size()) {
             auto [f, x, y] = pq.top();
-            if (x == N - 1 && y == N - 1) return f;
+            if (x == N - 1 && y == N - 1) return f; // Return if target reached
             pq.pop();
             for (auto &[dx, dy] : dirs) {
                 int a = x + dx, b = y + dy;
                 if (a < 0 || a >= N || b < 0 || b >= N || factor[a][b] != -1) continue;
-                factor[a][b] = min(dist[a][b], factor[x][y]);
+                factor[a][b] = min(dist[a][b], factor[x][y]); // Update safeness factor
                 pq.push({factor[a][b], a, b});
             }
         }
-        return -1;
+        return -1; // Return -1 if no path found
     }
 };
+
 ```
 
 ## Solution 2.
 
 1. BFS to calculate the distance to thieves for each node.
 2. Binary Search `limit` within `[0, maximumDistance]` to see if there exists a path each cell of which has a distance `>= limit`. The maximum limit is the answer.
+
+The algorithm calculates the distance of each cell to the nearest bomb using BFS. It then employs binary search to determine the maximum safeness factor, checking if a path exists from the top-left 
+to the bottom-right corner where each cell's distance to a bomb meets a certain threshold. The process continues until the maximum valid safeness factor is found, which is returned as the result.
 
 ```cpp
 // OJ: https://leetcode.com/problems/find-the-safest-path-in-a-grid
@@ -145,13 +161,17 @@ public:
         int N = A.size(), dirs[4][2] = {{0,1},{0,-1},{1,0},{-1,0}}, maxDist = 0;
         vector<vector<int>> dist(N, vector<int>(N, INT_MAX));
         queue<pair<int, int>> q;
+
+        // Initialize distances for cells with bombs
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < N; ++j) {
-                if (A[i][j] == 0) continue;
+                if (A[i][j] == 0) continue; // Skip empty cells
                 q.emplace(i, j);
-                dist[i][j] = 0;
+                dist[i][j] = 0; // Bomb distance is 0
             }
         }
+
+        // BFS to calculate the distance from bombs
         while (q.size()) {
             int cnt = q.size();
             while (cnt--) {
@@ -159,37 +179,43 @@ public:
                 q.pop();
                 for (auto &[dx, dy] : dirs) {
                     int a = x + dx, b = y + dy;
+                    // Update distances for unvisited cells
                     if (a < 0 || a >= N || b < 0 || b >= N || dist[a][b] != INT_MAX) continue;
                     dist[a][b] = 1 + dist[x][y];
-                    maxDist = max(maxDist, dist[a][b]);
+                    maxDist = max(maxDist, dist[a][b]); // Track the maximum distance
                     q.emplace(a, b);
                 }
             }
         }
+
+        // Binary search to find the maximum safeness factor
         int L = 0, R = maxDist;
         vector<vector<bool>> seen;
-        auto valid = [&](int limit) { // returns true if there exists a path each cell of which has a distance `>= limit`.
+        auto valid = [&](int limit) { // Check if a path exists with distance >= limit
             seen.assign(N, vector<bool>(N));
             function<bool(int, int)> dfs = [&](int x, int y) -> bool {
-                if (seen[x][y]) return false;
+                if (seen[x][y]) return false; // Avoid cycles
                 seen[x][y] = true;
-                if (dist[x][y] < limit) return false;
-                if (x == N - 1 && y == N - 1) return true;
+                if (dist[x][y] < limit) return false; // Check distance
+                if (x == N - 1 && y == N - 1) return true; // Reached target
                 for (auto &[dx, dy] : dirs) {
                     int a = x + dx, b = y + dy;
                     if (a < 0 || a >= N || b < 0 || b >= N) continue;
-                    if (dfs(a, b)) return true;
+                    if (dfs(a, b)) return true; // Explore neighbors
                 }
                 return false;
             };
-            return dfs(0, 0);
+            return dfs(0, 0); // Start DFS from the top-left corner
         };
+
+        // Perform binary search to find the highest valid safeness factor
         while (L <= R) {
             int M = (L + R) / 2;
-            if (valid(M)) L = M + 1;
-            else R = M - 1;
+            if (valid(M)) L = M + 1; // Move right if valid
+            else R = M - 1; // Move left if not valid
         }
-        return R;
+        return R; // Return the maximum safeness factor found
     }
 };
+
 ```
