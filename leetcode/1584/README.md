@@ -50,6 +50,10 @@ The run time is too restrict. If you sort the edges then use Kruskal you will ge
 
 We have to use min heap instead so that the time complexity is `O(K * log(N^2))` where `K` is the number of edges we need to scan to complete the tree. It's much smaller than `N^2` on average.
 
+The solution uses Kruskal's algorithm with a Union-Find data structure to find the minimum cost to connect all points in a 2D plane. It first computes the Manhattan distances 
+between all pairs of points and stores them as edges in a priority queue. Then, it iteratively selects the smallest edge, checks if the two endpoints are already connected, 
+and if not, connects them using the Union-Find structure. This process continues until all points are connected, accumulating the total cost of the connections, which is then returned as the result.
+
 ```cpp
 // OJ: https://leetcode.com/problems/min-cost-to-connect-all-points/
 // Author: github.com/lzl124631x
@@ -61,42 +65,47 @@ class UnionFind {
     int size;
 public:
     UnionFind(int N) : id(N), size(N) {
-        iota(begin(id), end(id), 0);
+        iota(begin(id), end(id), 0); // Initialize each node as its own parent
     }
     int find(int a) {
-        return id[a] == a ? a : (id[a] = find(id[a]));
+        return id[a] == a ? a : (id[a] = find(id[a])); // Path compression
     }
     void connect(int a, int b) {
         int p = find(a), q = find(b);
-        if (p == q) return;
-        id[p] = q;
+        if (p == q) return; // If already connected, do nothing
+        id[p] = q; // Union
         --size;
     }
     bool connected(int a, int b) {
-        return find(a) == find(b);
+        return find(a) == find(b); // Check if two nodes are in the same set
     }
-    int getSize() { return size; }
+    int getSize() { return size; } // Get the number of disjoint sets
 };
+
 class Solution {
     typedef array<int, 3> Edge;
 public:
     int minCostConnectPoints(vector<vector<int>>& A) {
         int N = A.size(), ans = 0;
         priority_queue<Edge, vector<Edge>, greater<Edge>> q;
+        
+        // Push all edges (Manhattan distances between points) into the priority queue
         for (int i = 0; i < N; ++i) {
             for (int j = i + 1; j < N; ++j) q.push({ abs(A[i][0] - A[j][0]) + abs(A[i][1] - A[j][1]), i, j });
         }
+        
         UnionFind uf(N);
         while (uf.getSize() > 1) {
-            auto [w, u, v] = q.top();
+            auto [w, u, v] = q.top(); // Get the smallest edge
             q.pop();
-            if (uf.connected(u, v)) continue;
-            uf.connect(u, v);
-            ans += w;
+            if (uf.connected(u, v)) continue; // Skip if already connected
+            uf.connect(u, v); // Connect the nodes
+            ans += w; // Add the weight to the result
         } 
         return ans;
     }
 };
+
 ```
 
 ## Solution 2. Prim
@@ -104,6 +113,11 @@ public:
 1. Start from a random node (we use `0` here), add it to the minimum spanning tree (MST).
 1. From all the edges connecting nodes in the MST and those outside of the MST, find the edge with the mimimal cost, and add the corresponding node to the MST.
 1. Repeat Step 2 until all the nodes are added into the MST.
+
+The solution employs a greedy approach to find the minimum cost to connect all points in a 2D space using Prim's algorithm. It initializes an array to track the
+minimum distances to unconnected nodes and a seen array to mark connected nodes. Starting from an arbitrary point, it repeatedly updates the distances to all 
+unconnected neighbors based on the Manhattan distance. It then selects the next closest unconnected point, adds its distance to the total cost, and marks 
+it as connected. This process continues until all points are connected, and the total cost is returned.
 
 ```cpp
 // OJ: https://leetcode.com/problems/min-cost-to-connect-all-points/
@@ -115,24 +129,33 @@ class Solution {
 public:
     int minCostConnectPoints(vector<vector<int>>& A) {
         int N = A.size(), ans = 0, cur = 0;
-        vector<int> dist(N, INT_MAX), seen(N);
+        vector<int> dist(N, INT_MAX), seen(N); // Initialize distance and seen arrays
+        
         for (int i = 0; i < N - 1; ++i) {
             int x = A[cur][0], y = A[cur][1];
-            seen[cur] = 1;
+            seen[cur] = 1; // Mark the current node as connected
+            
             for (int j = 0; j < N; ++j) {
-                if (seen[j]) continue;
-                dist[j] = min(dist[j], abs(A[j][0] - x) + abs(A[j][1] - y)); // use `cur` to relax the distance of all unconnected nodes
+                if (seen[j]) continue; // Skip already connected nodes
+                // Relax the distance for unconnected nodes using the current node
+                dist[j] = min(dist[j], abs(A[j][0] - x) + abs(A[j][1] - y));
             }
-            cur = min_element(begin(dist), end(dist)) - begin(dist); // greedily pick an unconnected node with the minimum distance
-            ans += dist[cur];
-            dist[cur] = INT_MAX; // mark this distance as used
+            // Pick the unconnected node with the minimum distance
+            cur = min_element(begin(dist), end(dist)) - begin(dist);
+            ans += dist[cur]; // Add the minimum distance to the result
+            dist[cur] = INT_MAX; // Mark this distance as used
         }
-        return ans;
+        return ans; // Return the total minimum cost
     }
 };
+
 ```
 
 Or the heap version. Note that the heap version is not more performant because all the nodes are interconnected in this graph. If the nodes are sparsely connected, the heap version is better.
+
+The solution uses Prim's algorithm to find the minimum cost to connect all points in a 2D plane. It initializes a priority queue (min-heap) to keep track of the minimum 
+distances to unconnected points. Starting from the first point, it repeatedly selects the point with the smallest distance, marks it as connected, and updates the 
+distances to its unconnected neighbors based on the Manhattan distance. The process continues until all points are connected, and the total cost is accumulated and returned as the result.
 
 ```cpp
 // OJ: https://leetcode.com/problems/min-cost-to-connect-all-points
@@ -144,26 +167,31 @@ public:
     int minCostConnectPoints(vector<vector<int>>& A) {
         int N = A.size(), ans = 0;
         typedef pair<int, int> PII;
-        priority_queue<PII, vector<PII>, greater<>> pq;
-        vector<int> dist(N, INT_MAX), seen(N);
-        dist[0] = 0;
-        pq.emplace(0, 0);
+        priority_queue<PII, vector<PII>, greater<>> pq; // Min-heap for the minimum cost edges
+        vector<int> dist(N, INT_MAX), seen(N); // Distance and seen arrays
+        dist[0] = 0; // Start from the first point
+        pq.emplace(0, 0); // Push the starting point into the priority queue
+
         while (pq.size()) {
-            auto [cost, i] = pq.top();
+            auto [cost, i] = pq.top(); // Get the node with the minimum cost
             pq.pop();
-            if (seen[i]) continue;
-            ans += dist[i];
-            seen[i] = 1;
+            if (seen[i]) continue; // Skip if already connected
+            
+            ans += dist[i]; // Add the cost to the result
+            seen[i] = 1; // Mark the current node as connected
+            
             for (int j = 0; j < N; ++j) {
-                if (seen[j]) continue;
+                if (seen[j]) continue; // Skip already connected nodes
+                // Calculate the Manhattan distance to unconnected nodes
                 int d = abs(A[j][0] - A[i][0]) + abs(A[j][1] - A[i][1]);
-                if (d < dist[j]) {
+                if (d < dist[j]) { // Update the distance if it's smaller
                     dist[j] = d;
-                    pq.emplace(d, j);
+                    pq.emplace(d, j); // Push the updated distance to the queue
                 }
             }
         }
-        return ans;
+        return ans; // Return the total minimum cost
     }
 };
+
 ```
