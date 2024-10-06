@@ -62,44 +62,74 @@
 
 Find the leaf nodes, trim them from the graph. Repeat this process until the graph only has 1 or 2 nodes left.
 
+Graph Representation: It constructs an adjacency list from the edges and initializes an indegree array to count the number of connections for each node.
+Leaf Identification: It enqueues all leaf nodes (nodes with an indegree of 1) into a queue.
+Layered Removal: The algorithm iteratively removes leaf nodes while reducing the count of remaining nodes. This continues until only 1 or 2 nodes are left.
+Result Compilation: The remaining nodes in the queue are the roots of the MHTs, which are collected and returned.
+
+// Khan's algo - topo sort approach
+// Peel of the outermost and then come layer by layer
+// At most 2 nodes can be there in the graph at the end. So, we used while(n > 2)
+// Changed indegree[it] == 0 to 1 here
+
 ```cpp
 // OJ: https://leetcode.com/problems/minimum-height-trees
 // Author: github.com/lzl124631x
 // Time: O(V + E)
 // Space: O(V + E)
+
 class Solution {
 public:
-    vector<int> findMinHeightTrees(int n, vector<vector<int>>& E) {
-        if (n == 1) return { 0 };
-        vector<int> degree(n), ans;
-        vector<vector<int>> G(n);
-        for (auto &e : E) {
-            int u = e[0], v = e[1];
-            degree[u]++;
-            degree[v]++;
-            G[u].push_back(v);
-            G[v].push_back(u);
+    vector<int> findMinHeightTrees(int n, vector<vector<int>>& edges) {
+        if (n == 1) return { 0 }; // Handle the case for a single node
+
+        vector<int> adj[n]; // Adjacency list
+        vector<int> indegree(n, 0); // Degree of each node
+
+        // Build the graph
+        for(const auto& it : edges) {
+            adj[it[0]].push_back(it[1]);
+            adj[it[1]].push_back(it[0]);
+            indegree[it[0]]++;
+            indegree[it[1]]++;
         }
+        
         queue<int> q;
-        for (int i = 0; i < n; ++i) {
-            if (degree[i] == 1) q.push(i);
+        // Initialize queue with leaf nodes
+        for (int i = 0; i < n; i++) {
+            if (indegree[i] == 1) {
+                q.push(i);
+            }
         }
+        
+        vector<int> ans;
+
+        // Remove leaves until 2 or fewer nodes remain
         while (n > 2) {
             int cnt = q.size();
-            n -= cnt;
-            while (cnt--) {
-                int u = q.front();
+            n -= cnt; // Reduce the number of nodes
+            
+            for (int i = 0; i < cnt; ++i) {
+                int node = q.front(); // Get the leaf node
                 q.pop();
-                for (int v : G[u]) {
-                    if (--degree[v] == 1) q.push(v);
+
+                // Update indegree and add new leaves to the queue
+                for (int it : adj[node]) {
+                    indegree[it]--;
+                    if (indegree[it] == 1) q.push(it);
                 }
             }
         }
-        while (q.size()) {
-            ans.push_back(q.front());
+
+        // Remaining nodes are the roots of MHTs
+        while (!q.empty()) {
+            int t = q.front();
+            ans.push_back(t);
             q.pop();
         }
         return ans;
     }
 };
+
+
 ```
