@@ -46,40 +46,216 @@ return: [6.0, 0.5, -1.0, 1.0, -1.0 ]
 **Related Topics**:  
 [Union Find](https://leetcode.com/tag/union-find/), [Graph](https://leetcode.com/tag/graph/)
 
-## Solution 1.
+
+
+## Solution 1. DFS
+
+Graph Construction: It builds a directed graph using an adjacency list, where each variable is a node. For each equation a/b = k, it creates two entries: graph[a][b]=k and graph[b][a]=1/k.
+Query Processing: For each query a/b, it checks if both variables exist in the graph. If they do, it uses Depth-First Search (DFS) to find a path from a to b, multiplying the values along the path to compute the result.
+Result Compilation: If a valid path is found, the computed value is added to the results; otherwise, -1 is returned if no valid path exists or if either variable is missing.
 
 ```cpp
 // OJ: https://leetcode.com/problems/evaluate-division/
 // Author: github.com/lzl124631x
+
 class Solution {
-private:
-    unordered_map<string, unordered_map<string, double>> m;
-    double dfs(string from, string to, set<string> &visited) {
-        if (m[from].count(to)) return m[from][to];
-        for (auto p : m[from]) {
-            if (visited.count(p.first)) continue;
-            visited.insert(p.first);
-            double v = dfs(p.first, to, visited);
-            if (v != -1) return p.second * v;
+    unordered_map<string, unordered_map<string, double>> graph; // Adjacency list to store equations and their values
+
+    // Depth-first search to find the value of src / dst
+    double dfs(const string &src, const string &dst, unordered_set<string> &visited) {
+        if (graph[src].count(dst)) return graph[src][dst]; // Return precomputed value if exists
+
+        for (const auto &[neighbor, value] : graph[src]) {
+            if (visited.count(neighbor)) continue; // Skip visited neighbors
+            visited.insert(neighbor); // Mark neighbor as visited
+            double result = dfs(neighbor, dst, visited); // Recursive call
+
+            // If a valid path is found, calculate the resulting value
+            if (result != -1) return value * result;
         }
-        return -1;
+        return -1; // Return -1 if no valid path is found
     }
+
 public:
-    vector<double> calcEquation(vector<vector<string>> &equations, vector<double>& values, vector<vector<string>> queries) {
+    vector<double> calcEquation(vector<vector<string>> &equations, vector<double> &values, vector<vector<string>> &queries) {
+        // Build the graph from equations and values
         for (int i = 0; i < equations.size(); ++i) {
-            auto &e = equations[i];
-            m[e[0]][e[1]] = values[i];
-            m[e[1]][e[0]] = 1 / values[i];
+            graph[equations[i][0]][equations[i][1]] = values[i]; // a / b = value
+            graph[equations[i][1]][equations[i][0]] = 1.0 / values[i]; // b / a = 1 / value
         }
-        vector<double> ans;
-        for (auto q : queries) {
-            set<string> visited;
-            auto &a = q[0], &b = q[1];
-            if (!m.count(a) || !m.count(b)) ans.push_back(-1);
-            else if (a == b) ans.push_back(1);
-            else ans.push_back(dfs(a, b, visited));
+        
+        vector<double> results; // Store results for each query
+        for (const auto &q : queries) {
+            // Check if both variables exist in the graph
+            if (!graph.count(q[0]) || !graph.count(q[1])) {
+                results.push_back(-1); // -1 if either variable is not found
+            } else if (q[0] == q[1]) {
+                results.push_back(1); // a / a = 1
+            } else {
+                unordered_set<string> visited{q[0]}; // Initialize visited set with the source
+                results.push_back(dfs(q[0], q[1], visited)); // Compute the result using DFS
+            }
         }
-        return ans;
+        return results; // Return computed results
     }
 };
+
 ```
+
+
+
+## Solution 2. DSU
+
+Graph Representation: Each variable is assigned a unique ID, and a Disjoint Set is initialized to represent connections (equations) between variables.
+
+Union Operation: For each equation a/b=k, the unionByValue method links the variables, updating their parent-child relationships and storing the ratio values to maintain the division relationships.
+
+Query Processing: For each query a/b, it checks if both variables exist and if they belong to the same connected component. If they do, it computes the value of the division using the stored ratios; otherwise, it returns -1.0.
+
+```cpp
+class DisjointSet {
+    vector<int> parent, size;
+    vector<double> value;
+public:
+    DisjointSet(int n) {
+        parent.resize(n);
+        size.resize(n, 1);
+        value.resize(n, 1.0);
+        for (int i = 0; i < n; i++) {
+            parent[i] = i;
+        }
+    }
+
+    int find(int x) {
+        if (x != parent[x]) {
+            int originalParent = parent[x];
+            parent[x] = find(parent[x]);
+            value[x] *= value[originalParent]; // update value during path compression
+        }
+        return parent[x];
+    }
+
+    void unionByValue(int x, int y, double ratio) {
+        int rootX = find(x);
+        int rootY = find(y);
+        if (rootX != rootY) {
+            if (size[rootX] < size[rootY]) {
+                parent[rootX] = rootY;
+                value[rootX] = value[y] * ratio / value[x];
+                size[rootY] += size[rootX];
+            } else {
+                parent[rootY] = rootX;
+                value[rootY] = value[x] / ratio / value[y];
+                size[rootX] += size[rootY];
+            }
+        }
+    }
+
+    double getValue(int x, int y) {
+        return value[x] / value[y];
+    }
+};
+
+class Solution {
+public:
+    vector<double> calcEquation(vector<vector<string>>& equations, vector<double>& values, vector<vector<string>>& queries) {
+        unordered_map<string, int> id;
+        int idCounter = 0;
+
+        // Assign an ID to each variable
+        for (const auto& eq : equations) {
+            if (id.find(eq[0]) == id.end()) id[eq[0]] = idCounter++;
+            if (id.find(eq[1]) == id.end()) id[eq[1]] = idCounter++;
+        }
+
+        DisjointSet ds(idCounter);
+
+        // Union each equation
+        for (int i = 0; i < equations.size(); i++) {
+            const string& var1 = equations[i][0];
+            const string& var2 = equations[i][1];
+            ds.unionByValue(id[var1], id[var2], values[i]);
+        }
+
+        vector<double> res;
+        // Process each query
+        for (const auto& q : queries) {
+            const string& var1 = q[0];
+            const string& var2 = q[1];
+            if (id.find(var1) == id.end() || id.find(var2) == id.end() || ds.find(id[var1]) != ds.find(id[var2])) {
+                res.push_back(-1.0);
+            } else {
+                res.push_back(ds.getValue(id[var1], id[var2]));
+            }
+        }
+
+        return res;
+    }
+};
+
+
+
+
+```
+
+
+
+## Solution 3. Floyd Warshall
+
+Graph Representation: It initializes a distance matrix and maps each variable to a unique node. For each equation a/b=k, it updates the distances for both aa to bb and bb to aa (the inverse).
+
+Floyd-Warshall Algorithm: This algorithm computes the shortest paths between all pairs of nodes, updating the distance matrix based on intermediary nodes to find possible division paths.
+
+Query Processing: For each query a/b, it checks if both variables exist in the node map and if a valid path exists in the distance matrix. If valid, it retrieves the division result; otherwise, it returns -1.0.
+
+```cpp
+
+#define FLOAT_MAX DBL_MAX
+
+class Solution {
+public:
+    vector<double> calcEquation(vector<vector<string>>& equations, vector<double>& values, vector<vector<string>>& queries) {
+        // Initialize distance matrix and node mapping
+        vector<vector<double>> distances(2 * equations.size() + 1, vector<double>(2 * equations.size() + 1, FLOAT_MAX));
+        unordered_map<string, int> nodes;
+        int node = 1;
+
+        // Construct the adjacency list for the graphs
+        for (int i = 0; i < equations.size(); i++) {
+            string s = equations[i][0], d = equations[i][1];
+            double val = values[i];
+            if (!nodes[s]) nodes[s] = node++;
+            if (!nodes[d]) nodes[d] = node++;
+            distances[nodes[s]][nodes[s]] = 1; // Self distance is 1
+            distances[nodes[d]][nodes[d]] = 1; // Self distance is 1
+            distances[nodes[s]][nodes[d]] = val; // Direct distance
+            distances[nodes[d]][nodes[s]] = 1 / val; // Inverse distance
+        }
+
+        // Floyd-Warshall algorithm to compute all-pairs shortest paths
+        for (int k = 1; k <= nodes.size(); k++) {
+            for (int i = 1; i <= nodes.size(); i++) {
+                for (int j = 1; j <= nodes.size(); j++) {
+                    if (i == j || i == k || j == k) continue;
+                    if (distances[i][k] != FLOAT_MAX && distances[k][j] != FLOAT_MAX)
+                        distances[i][j] = min(distances[i][j], distances[i][k] * distances[k][j]);
+                }
+            }
+        }
+
+        vector<double> soln;
+        // Process each query to find the results
+        for (int i = 0; i < queries.size(); i++) {
+            if (!nodes[queries[i][0]] || !nodes[queries[i][1]] || (distances[nodes[queries[i][0]]][nodes[queries[i][1]]] == FLOAT_MAX))
+                soln.push_back(-1.0); // No valid path
+            else
+                soln.push_back(distances[nodes[queries[i][0]]][nodes[queries[i][1]]]); // Valid path
+        }
+        return soln; // Return results
+    }
+};
+
+
+
+```
+
