@@ -51,39 +51,69 @@
 
 For each node, try each neighbor node in ascending lexical order. The first path that reaches `N + 1` nodes is the answer.
 
+The code finds an itinerary that visits all given flights exactly once, starting from "JFK." It constructs a 
+graph using an adjacency list to represent flights and sorts the destinations lexicographically. The solution 
+employs Depth-First Search (DFS) to explore possible itineraries. If all flights are used, it returns the valid 
+itinerary. If a path doesn't work, it backtracks by removing the last destination and marking the flight as 
+unused. The process continues until a valid itinerary is found or all options are exhausted.
+
 ```cpp
 // OJ: https://leetcode.com/problems/reconstruct-itinerary/
 // Author: github.com/lzl124631x
 // Time: O(E^2)
 // Space: O(E)
+
+// For each node, try each neighbor node in ascending lexical order. The first path that reaches N + 1 nodes is the answer.
+// It is given that we may assume all tickets form at least one valid itinerary. You must use all the tickets once and only once.
+// we are keeping idx for making sure that we won't choose same path again, not the dest
+
 class Solution {
 public:
-    vector<string> findItinerary(vector<vector<string>>& E) {
-        int N = E.size();
-        vector<bool> used(N);
-        unordered_map<string, vector<pair<string, int>>> G;
-        for (int i = 0; i < E.size(); ++i) G[E[i][0]].emplace_back(E[i][1], i);
-        for (auto &[u, vs] : G) sort(begin(vs), end(vs));
-        vector<string> path{"JFK"};
-        function<bool()> dfs = [&]() {
-            if (path.size() == N + 1) return true;
-            for (auto &[v, index] : G[path.back()]) {
-                if (used[index]) continue;
-                used[index] = true;
-                path.push_back(v);
-                if (dfs()) return true;
-                path.pop_back();
-                used[index] = false;
-            }
-            return false;
-        };
-        dfs();
-        return path;
+    vector<string> findItinerary(vector<vector<string>>& flights) {
+        unordered_map<string, vector<pair<string, int>>> adjList;  // Adjacency list for graph representation
+        int flightCount = flights.size();
+        vector<bool> used(flightCount);  // Tracks whether a flight has been used in the itinerary
+        vector<string> itinerary = {"JFK"};  // Start the itinerary from "JFK"
+        
+        // Build the adjacency list
+        for (int i = 0; i < flightCount; ++i) 
+            adjList[flights[i][0]].emplace_back(flights[i][1], i);
+        
+        // Sort destinations in lexicographical order for each source
+        for (auto &[src, dests] : adjList) 
+            sort(begin(dests), end(dests));
+        
+        // Perform DFS to find valid itinerary
+        dfs(itinerary, adjList, used, flightCount);
+        return itinerary;
+    }
+    
+private:
+    bool dfs(vector<string> &itinerary, unordered_map<string, vector<pair<string, int>>> &adjList, vector<bool> &used, int flightCount) {
+        // Base case: If the itinerary includes all flights
+        if (itinerary.size() == flightCount + 1) return true;
+        
+        // Explore each possible destination from the current airport
+        for (auto &[nextDest, idx] : adjList[itinerary.back()]) {
+            if (used[idx]) continue;  // Skip used flights
+            used[idx] = true;  // Mark flight as used
+            itinerary.push_back(nextDest);  // Add destination to itinerary
+            if (dfs(itinerary, adjList, used, flightCount)) return true;  // Recursive DFS call
+            itinerary.pop_back();  // Backtrack if this path doesn't work
+            used[idx] = false;  // Unmark flight
+        }
+        return false;
     }
 };
 ```
 
 ## Solution 2. Eulerian Path
+
+The code constructs an itinerary that visits all flights exactly once, starting from "JFK." It uses a graph representation
+with an adjacency list, where each airport maps to a multiset of its lexicographically sorted destinations. 
+The solution employs Depth-First Search (DFS) to explore all possible paths from the current airport. It recursively 
+visits the smallest destination, removes it from the multiset, and adds the airport to the itinerary once all its 
+destinations are visited. Finally, the itinerary is reversed to reflect the correct order of travel before being returned.
 
 ```cpp
 // OJ: https://leetcode.com/problems/reconstruct-itinerary/
@@ -93,20 +123,30 @@ public:
 // Ref: https://leetcode.com/problems/reconstruct-itinerary/discuss/78768/Short-Ruby-Python-Java-C%2B%2B
 class Solution {
 public:
-    vector<string> findItinerary(vector<vector<string>>& E) {
-        unordered_map<string, multiset<string>> G;
-        for (auto &e : E) G[e[0]].insert(e[1]);
-        vector<string> ans;
-        function<void(string)> euler = [&](string u) {
-            while (G[u].size()) {
-                auto v = *G[u].begin();
-                G[u].erase(G[u].begin());
-                euler(v);
-            }
-            ans.push_back(u);
-        };
-        euler("JFK");
-        return vector<string>(rbegin(ans), rend(ans));
+    vector<string> findItinerary(vector<vector<string>>& flights) {
+        unordered_map<string, multiset<string>> adjList;  // Graph with multiple destinations sorted lexicographically
+        
+        // Build the graph by adding each flight's destination to the source's multiset
+        for (auto &flight : flights) 
+            adjList[flight[0]].insert(flight[1]);
+        
+        vector<string> itinerary;
+        dfs("JFK", adjList, itinerary);  // Start DFS from "JFK"
+        
+        // Reverse the itinerary to get the correct order
+        return vector<string>(rbegin(itinerary), rend(itinerary));
+    }
+    
+private:
+    // Depth-First Search to construct the itinerary
+    void dfs(string airport, unordered_map<string, multiset<string>> &adjList, vector<string> &itinerary) {
+        while (!adjList[airport].empty()) {  // Explore all destinations from the current airport
+            auto next = *adjList[airport].begin();  // Get the smallest lexicographical destination
+            adjList[airport].erase(adjList[airport].begin());  // Remove it from the set
+            dfs(next, adjList, itinerary);  // Recursive DFS call to visit the next destination
+        }
+        itinerary.push_back(airport);  // Add the airport to the itinerary when all destinations are visited
     }
 };
+
 ```
