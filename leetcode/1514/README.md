@@ -60,6 +60,12 @@
 
 Direct application of Dijkstra algorithm except that usually the cost is the smaller the better, but in this problem the probability is the greater the better.
 
+The solution utilizes Dijkstra's algorithm to find the path with the maximum probability from a starting node to a target node in a weighted 
+directed graph. It constructs an adjacency list representing the graph from the given edges and their associated probabilities. A max-heap 
+(priority queue) is employed to explore nodes based on the highest probability. Starting from the initial node with a probability of 1, 
+it iteratively updates the maximum probabilities for neighboring nodes. If the target node is reached, the maximum probability along the 
+path is returned; otherwise, it returns 0 if the target is unreachable.
+
 ```cpp
 // OJ: https://leetcode.com/problems/path-with-maximum-probability/
 // Author: github.com/lzl124631x
@@ -68,34 +74,46 @@ Direct application of Dijkstra algorithm except that usually the cost is the sma
 class Solution {
 public:
     double maxProbability(int n, vector<vector<int>>& E, vector<double>& P, int start, int end) {
-        vector<vector<pair<int, double>>> G(n);
+        vector<vector<pair<int, double>>> G(n); // Adjacency list for the graph
+        
+        // Build the graph using edges and their corresponding probabilities
         for (int i = 0; i < E.size(); ++i) {
             int u = E[i][0], v = E[i][1];
             G[u].emplace_back(v, P[i]);
             G[v].emplace_back(u, P[i]);
         }
-        priority_queue<pair<double, int>> pq;
-        pq.emplace(1, start);
-        vector<double> dist(n);
-        dist[start] = 1;
+        
+        priority_queue<pair<double, int>> pq; // Max-heap to store probabilities and nodes
+        pq.emplace(1, start); // Start with probability 1 at the starting node
+        vector<double> dist(n); // To store the maximum probability to reach each node
+        dist[start] = 1; // Probability to reach start is 1
+
         while (pq.size()) {
-            auto [p, u] = pq.top();
+            auto [p, u] = pq.top(); // Get the node with the highest probability
             pq.pop();
-            if (p < dist[u]) continue;
-            if (u == end) return p;
+            if (p < dist[u]) continue; // Skip if this probability is not optimal
+            if (u == end) return p; // Return probability if we reach the target
+            
+            // Update probabilities for neighboring nodes
             for (auto &[v, w] : G[u]) {
-                if (dist[v] >= p * w) continue;
-                dist[v] = p * w;
-                pq.emplace(dist[v], v);
+                if (dist[v] >= p * w) continue; // Skip if not an improvement
+                dist[v] = p * w; // Update the maximum probability to reach v
+                pq.emplace(dist[v], v); // Push the updated probability and node
             }
         }
-        return 0;
+        return 0; // Return 0 if the end node is unreachable
     }
 };
+
 ```
 
 Or use `multiset`
 
+The solution employs a modified Dijkstra's algorithm to find the maximum probability path from a starting node to a target node 
+in a weighted graph. It builds an adjacency list representing the graph using the provided edges and their success probabilities. 
+A multiset is used to manage nodes by their probabilities, allowing efficient retrieval of the node with the highest probability. 
+Starting from the initial node with a probability of 1, the algorithm iteratively updates the probabilities of neighboring nodes. 
+If the target node is reached, its maximum probability is returned; if unreachable, the function returns 0.
 
 ```cpp
 // OJ: https://leetcode.com/problems/path-with-maximum-probability/
@@ -105,25 +123,33 @@ Or use `multiset`
 class Solution {
 public:
     double maxProbability(int n, vector<vector<int>>& edges, vector<double>& succProb, int start, int end) {
-        vector<vector<pair<int, double>>> G(n);
+        vector<vector<pair<int, double>>> G(n); // Adjacency list for the graph
+        
+        // Build the graph with edges and their success probabilities
         for (int i = 0; i < edges.size(); ++i) {
             auto &e = edges[i];
             G[e[0]].emplace_back(e[1], succProb[i]);
             G[e[1]].emplace_back(e[0], succProb[i]);
         }
-        multiset<pair<double, int>> s; // prob, index
-        unordered_map<int, double> m;
-        s.emplace(1, start);
+        
+        multiset<pair<double, int>> s; // Max-heap for probabilities and nodes
+        unordered_map<int, double> m; // To store maximum probabilities to reach nodes
+        s.emplace(1, start); // Start with probability 1 at the starting node
+
         while (s.size()) {
-            auto p = *s.rbegin();
+            auto p = *s.rbegin(); // Get the node with the highest probability
             s.erase(prev(s.end()));
             int u = p.second;
-            if (m.count(u)) continue;
-            m[u] = p.first;
-            if (u == end) return m[u];
+            if (m.count(u)) continue; // Skip if already processed
+            m[u] = p.first; // Record the maximum probability to reach u
+            
+            if (u == end) return m[u]; // Return if we reach the target
+            
+            // Update probabilities for neighboring nodes
             for (auto &[v, w] : G[u]) s.emplace(w * m[u], v);
         }
-        return 0;
+        return 0; // Return 0 if the end node is unreachable
     }
 };
+
 ```
