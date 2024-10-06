@@ -78,6 +78,11 @@ Thus, the minimum time needed to complete all the courses is 7 + 5 = 12 months.
 
 A node's distance is its time plus the maximum distance of all predecessor nodes. We can calculate the distances via a topological sort. The answer is the maximum distance.
 
+The code finds the minimum time to finish all courses with prerequisites using topological sorting. It builds a graph where each node represents a course, 
+and edges represent prerequisites. Courses with no prerequisites (indegree 0) are added to a queue. For each course processed, it updates the time 
+required for dependent courses by taking the maximum of the current time and the new time (course time + prerequisite time). Once all courses are 
+processed, the maximum time among all courses is returned as the answer.
+
 ```cpp
 // OJ: https://leetcode.com/problems/parallel-courses-iii/
 // Author: github.com/lzl124631x
@@ -86,35 +91,41 @@ A node's distance is its time plus the maximum distance of all predecessor nodes
 class Solution {
 public:
     int minimumTime(int n, vector<vector<int>>& E, vector<int>& T) {
-        vector<vector<int>> G(n);
-        vector<int> indegree(n), dist(n);
+        vector<vector<int>> G(n); // adjacency list
+        vector<int> indegree(n), dist(n); // track indegrees and distances
         for (auto &e : E) { // build graph and count indegrees
             G[e[0] - 1].push_back(e[1] - 1);
             indegree[e[1] - 1]++;
         }
         queue<int> q;
         for (int i = 0; i < n; ++i) {
-            if (indegree[i] == 0) { // enqueue nodes with 0 indegree.
+            if (indegree[i] == 0) { // enqueue nodes with 0 indegree
                 q.push(i);
-                dist[i] = T[i]; // source nodes' distance is their corresponding time
+                dist[i] = T[i]; // initial distance is the time for each course
             } 
         }
-        while (q.size()) {
+        while (!q.empty()) {
             int u = q.front();
             q.pop();
             for (int v : G[u]) {
-                dist[v] = max(dist[u] + T[v], dist[v]); // update the distance of node `v` using the maximum distance of predecessor nodes.
-                if (--indegree[v] == 0) q.push(v); // enqueue node `v` when its indegree drops to 0
+                dist[v] = max(dist[u] + T[v], dist[v]); // update distance of successor
+                if (--indegree[v] == 0) q.push(v); // enqueue node when indegree becomes 0
             }
         }
-        return *max_element(begin(dist), end(dist)); // the answer is the maximum distance.
+        return *max_element(begin(dist), end(dist)); // maximum distance is the result
     }
 };
+
 ```
 
 ## Solution 2. Topological Sort (DFS)
 
 DFS version topological sort is **Post-order Traversal + Memo**.
+
+The code calculates the minimum time required to complete all courses with given prerequisites using Depth-First Search (DFS). It constructs a 
+directed graph where each course points to its prerequisites. For each course, the DFS explores its dependencies, calculating the maximum 
+time needed to complete all prerequisite courses before the current course. The total time for each course is the sum of its own time and 
+the maximum time of its prerequisites. Finally, the maximum time across all courses is returned as the result.
 
 ```cpp
 // OJ: https://leetcode.com/problems/parallel-courses-iii/
@@ -124,19 +135,27 @@ DFS version topological sort is **Post-order Traversal + Memo**.
 class Solution {
 public:
     int minimumTime(int n, vector<vector<int>>& E, vector<int>& T) {
-        vector<vector<int>> G(n);
-        vector<int> dist(n);
+        vector<vector<int>> G(n); // adjacency list
+        vector<int> dist(n); // store the time to finish each course
+        
+        // Build the graph
         for (auto &e : E) G[e[1] - 1].push_back(e[0] - 1);
-        function<int(int)> dfs = [&](int u) {
-            if (dist[u]) return dist[u];
-            int mx = 0;
-            for (int v : G[u]) mx = max(mx, dfs(v));
-            return dist[u] = mx + T[u];
-        };
-        for (int i = 0; i < n; ++i) dfs(i);
-        return *max_element(begin(dist), end(dist));
+        
+        // Run DFS for each course
+        for (int i = 0; i < n; ++i) dfs(i, G, T, dist);
+        
+        return *max_element(begin(dist), end(dist)); // return the max time
+    }
+
+    // DFS function to calculate the time to finish course `u`
+    int dfs(int u, vector<vector<int>>& G, vector<int>& T, vector<int>& dist) {
+        if (dist[u]) return dist[u]; // if already computed, return the result
+        int mx = 0;
+        for (int v : G[u]) mx = max(mx, dfs(v, G, T, dist)); // find max time of prerequisites
+        return dist[u] = mx + T[u]; // calculate time to finish course `u`
     }
 };
+
 ```
 
 ## Discuss
