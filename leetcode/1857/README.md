@@ -56,46 +56,57 @@ Just do normal topo sort. One modification is that, for each node, we need to st
 
 For example, assume there are two paths reaching the current node, `aba`, `bba`. Then `cnt['a'] = 2` and `cnt['b'] = 2` because both color `a` and `b` can be `2` in different paths.
 
+The solution finds the largest color value in a directed graph where each node represents a color. It builds the graph and calculates the indegrees of each node. 
+Using a queue, it performs a topological sort, processing nodes with zero indegree first. For each processed node, it updates the color counts of its neighbors, 
+keeping track of the maximum color counts along paths. If all nodes are processed, it returns the highest color count; otherwise, it returns -1 if there are cycles preventing full traversal.
+
 ```cpp
 // OJ: https://leetcode.com/contest/weekly-contest-240/problems/largest-color-value-in-a-directed-graph/
 // Author: github.com/lzl124631x
 // Time: O(V + E)
 // Space: O(V + E)
 class Solution {
-    typedef array<int, 26> T;
+    typedef array<int, 26> T; // Array to store color counts
 public:
     int largestPathValue(string C, vector<vector<int>>& E) {
-        unordered_map<int, vector<int>> G;
-        vector<int> indegree(C.size());
+        unordered_map<int, vector<int>> G; // Graph representation
+        vector<int> indegree(C.size()); // Count of incoming edges
         for (auto &e : E) {
-            G[e[0]].push_back(e[1]); // build graph
-            indegree[e[1]]++; // count indegrees
+            G[e[0]].push_back(e[1]); // Build graph
+            indegree[e[1]]++; // Count indegrees
         }
-        vector<T> cnt(C.size(), T{}); // cnt[i][j] is the maximum count of j-th color from the ancester nodes to node i.
+        vector<T> cnt(C.size(), T{}); // Color counts for each node
         queue<int> q;
+        
+        // Initialize the queue with source nodes
         for (int i = 0; i < C.size(); ++i) {
-            if (indegree[i] == 0) { // if this node has 0 indegree, we can use it as a source node
+            if (indegree[i] == 0) {
                 q.push(i);
-                cnt[i][C[i] - 'a'] = 1; // the count of the current color should be 1
+                cnt[i][C[i] - 'a'] = 1; // Start with current color count
             }
         }
+        
         int ans = 0, seen = 0;
         while (q.size()) {
-            auto u = q.front();
+            auto u = q.front(); // Current node
             q.pop();
-            int val = *max_element(begin(cnt[u]), end(cnt[u])); // we use the maximum of all the maximum color counts as the color value.
-            ans = max(ans, val);
-            ++seen;
+            int val = *max_element(begin(cnt[u]), end(cnt[u])); // Maximum color count
+            ans = max(ans, val); // Update answer
+            ++seen; // Count nodes seen
+            
+            // Update color counts for adjacent nodes
             for (int v : G[u]) {
                 for (int i = 0; i < 26; ++i) {
-                    cnt[v][i] = max(cnt[v][i], cnt[u][i] + (i == C[v] - 'a')); // try to use node `u` to update all the color counts of node `v`.
+                    cnt[v][i] = max(cnt[v][i], cnt[u][i] + (i == C[v] - 'a')); // Update color counts
                 }
                 if (--indegree[v] == 0) {
-                    q.push(v);
+                    q.push(v); // Add to queue if all dependencies are resolved
                 }
             }
         }
-        return seen < C.size() ? -1 : ans;
+        
+        return seen < C.size() ? -1 : ans; // Return -1 if not all nodes are seen
     }
 };
+
 ```
