@@ -83,6 +83,11 @@ Tricky point here: After traversing this batch of meetings, we reset the persons
 
 In the end, we add all the persons who are connected to person 0 into the answer array.
 
+The code finds all people who learn a secret through a series of meetings. It uses a Union-Find data structure to manage connections between people. 
+First, person 0 and firstPerson are connected since they initially share the secret. Meetings are processed in chronological order. 
+For each time group, the algorithm connects people who meet, and after processing, it resets anyone not connected to person 0, meaning 
+they don't know the secret. Finally, it returns all people who are still connected to person 0, indicating they've learned the secret.
+
 ```cpp
 // OJ: https://leetcode.com/problems/find-all-people-with-secret/
 // Author: github.com/lzl124631x
@@ -90,48 +95,74 @@ In the end, we add all the persons who are connected to person 0 into the answer
 //        Can be reduced to `O(MlogM + (M + N) * alpha(N))`
 // Space: O(M + N). Can be reduced to O(N) if we make `ppl` an `unordered_set`.
 class UnionFind {
-    vector<int> id;
+    vector<int> id; // Stores the parent of each element
+
 public:
     UnionFind(int n) : id(n) {
-        iota(begin(id), end(id), 0);
+        iota(begin(id), end(id), 0); // Initialize the parent to itself
     }
+
     void connect(int a, int b) {
-        id[find(b)] = find(a);
+        id[find(b)] = find(a); // Connect two elements
     }
+
     int find(int a) {
+        // Path compression optimization
         return id[a] == a ? a : (id[a] = find(id[a]));
     }
+
     bool connected(int a, int b) {
-        return find(a) == find(b);
+        return find(a) == find(b); // Check if two elements are connected
     }
-    void reset(int a) { id[a] = a; }
+
+    void reset(int a) {
+        id[a] = a; // Reset the element's parent to itself
+    }
 };
+
 class Solution {
 public:
-    vector<int> findAllPeople(int n, vector<vector<int>>& A, int firstPerson) {
-        sort(begin(A), end(A), [](auto &a, auto &b) { return a[2] < b[2]; }); // Sort the meetings in ascending order of meeting time
+    vector<int> findAllPeople(int n, vector<vector<int>>& meetings, int firstPerson) {
+        // Sort meetings by time in ascending order
+        sort(begin(meetings), end(meetings), [](const auto &a, const auto &b) {
+            return a[2] < b[2];
+        });
+
         UnionFind uf(n);
         uf.connect(0, firstPerson); // Connect person 0 with the first person
-        vector<int> ppl;
-        for (int i = 0, M = A.size(); i < M; ) {
-            ppl.clear();
-            int time = A[i][2];
-            for (; i < M && A[i][2] == time; ++i) { // For all the meetings happening at the same time
-                uf.connect(A[i][0], A[i][1]); // Connect the two persons
-                ppl.push_back(A[i][0]); // Add both persons into the pool
-                ppl.push_back(A[i][1]);
+
+        vector<int> people; // To keep track of people at current meetings
+        for (int i = 0, M = meetings.size(); i < M; ) {
+            people.clear();
+            int time = meetings[i][2];
+
+            // Process all meetings happening at the same time
+            while (i < M && meetings[i][2] == time) {
+                uf.connect(meetings[i][0], meetings[i][1]); // Connect persons in the meeting
+                people.push_back(meetings[i][0]); // Add to the pool
+                people.push_back(meetings[i][1]);
+                ++i;
             }
-            for (int n : ppl) { // For each person in the pool, check if he/she's connected with person 0.
-                if (!uf.connected(0, n)) uf.reset(n); // If not, this person doesn't have secret, reset it.
+
+            // Check connectivity with person 0
+            for (int person : people) {
+                if (!uf.connected(0, person)) {
+                    uf.reset(person); // Reset if not connected to person 0
+                }
             }
         }
-        vector<int> ans;
+
+        // Collect all persons connected to person 0
+        vector<int> result;
         for (int i = 0; i < n; ++i) {
-            if (uf.connected(0, i)) ans.push_back(i); // Push all the persons who are connected with person 0 into answer array
+            if (uf.connected(0, i)) {
+                result.push_back(i);
+            }
         }
-        return ans;
+        return result;
     }
 };
+
 ```
 
 **Complexity Analysis**:
