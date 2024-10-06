@@ -52,35 +52,48 @@ Path to get the maximum gold, 1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5 -&gt; 6 -&gt; 7.
 
 ## Solution 1. DFS
 
+The solution uses Depth-First Search (DFS) to explore a grid representing a gold mine. It recursively visits each cell, accumulating gold 
+while marking visited cells as zero. After exploring, it backtracks to restore the cell's value. The main function iterates through the grid, 
+starting DFS from gold-containing cells and returns the maximum gold collected.
+
 ```cpp
 // OJ: https://leetcode.com/problems/path-with-maximum-gold/
 // Author: github.com/lzl124631x
 // Time: O(MN*4^(MN))
 // Space: O(MN) because in the worst case the DFS will visit all cells.
 class Solution {
-    int M, N, ans = 0, dirs[4][2] = {{0,1},{0,-1},{1,0},{-1,0}};
+    int M, N, ans = 0; 
+    int dirs[4][2] = {{0,1},{0,-1},{1,0},{-1,0}}; // Direction vectors for DFS
+
+    // Depth-first search to explore gold collection
     void dfs(vector<vector<int>> &G, int i, int j, int cnt) {
-        int g = G[i][j];
-        G[i][j] = 0;
-        cnt += g;
-        ans = max(ans, cnt);
+        int g = G[i][j]; // Current gold amount
+        G[i][j] = 0; // Mark as visited
+        cnt += g; // Accumulate gold
+        ans = max(ans, cnt); // Update maximum gold
+
+        // Explore all four directions
         for (auto &[dx, dy] : dirs) {
-            int x = i + dx, y = j + dy;
-            if (x < 0 || y < 0 || x >= M || y >= N || G[x][y] == 0) continue;
-            dfs(G, x, y, cnt);
+            int x = i + dx, y = j + dy; // New coordinates
+            if (x < 0 || y < 0 || x >= M || y >= N || G[x][y] == 0) continue; // Out of bounds or visited
+            dfs(G, x, y, cnt); // Recur for next cell
         }
-        G[i][j] = g;
+        
+        G[i][j] = g; // Backtrack: unmark cell
     }
+
 public:
+    // Function to get maximum gold
     int getMaximumGold(vector<vector<int>>& G) {
-        M = G.size(), N = G[0].size();
+        M = G.size(), N = G[0].size(); // Get dimensions
         for (int i = 0; i < M; ++i) {
             for (int j = 0; j < N; ++j) {
-                if (G[i][j] == 0) continue;
-                dfs(G, i, j, 0);
+                if (G[i][j] == 0) continue; // Skip cells with no gold
+                dfs(G, i, j, 0); // Start DFS from current cell
             }
         }
-        return ans;
+        return ans; // Return maximum gold collected
     }
 };
+
 ```
