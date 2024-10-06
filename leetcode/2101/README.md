@@ -60,41 +60,59 @@ Thus all 5 bombs are detonated.
 
 Time complexity: In the worst case, all `N` nodes are inter-connected. So for each node we need to enumerate its `N` neighbors. So the DFS has `O(N^2)` time complexity, and we need to repeat the DFS `N` times. Thus the overall time complexity is `O(N^3)`.
 
+Graph Construction: It builds a directed graph where each bomb is a node, and a directed edge exists from bomb ii to bomb jj if bomb ii can cover bomb jj based on their positions and radii.
+Coverage Check: The cover function determines if one bomb can cover another by checking if the distance between them is within the explosion radius of the first bomb.
+DFS for Detonations: The algorithm iterates through each bomb, performing a depth-first search (DFS) to count how many bombs can be detonated starting from that bomb.
+Maximum Count: It keeps track of the maximum number of detonated bombs across all starting points and returns that value as the result.
+
 ```cpp
 // OJ: https://leetcode.com/problems/detonate-the-maximum-bombs/
 // Author: github.com/lzl124631x
 // Time: O(N^3)
 // Space: O(N^2)
+
 class Solution {
 public:
     int maximumDetonation(vector<vector<int>>& A) {
         int N = A.size();
-        vector<vector<int>> G(N);
-        auto cover = [&](int i, int j) {
-            return pow((long)A[i][0] - A[j][0], 2) + pow((long)A[i][1] - A[j][1], 2) <= pow((long)A[i][2], 2);
-        };
+        vector<vector<int>> G(N); // Adjacency list for bomb connections
+        
+        // Build the graph based on coverage
         for (int i = 0; i < N; ++i) {
             for (int j = i + 1; j < N; ++j) {
-                if (cover(i, j)) G[i].push_back(j);
-                if (cover(j, i)) G[j].push_back(i);
+                if (cover(A, i, j)) G[i].push_back(j); // i covers j
+                if (cover(A, j, i)) G[j].push_back(i); // j covers i
             }
         }
+
         vector<bool> seen(N);
-        function<int(int)> dfs = [&](int u) {
-            seen[u] = true;
-            int ans = 1;
-            for (int v : G[u]) {
-                if (seen[v]) continue;
-                ans += dfs(v);
-            }
-            return ans;
-        };
         int ans = 0;
+        
+        // Calculate maximum detonation starting from each bomb
         for (int i = 0; i < N; ++i) {
-            seen.assign(N, false);
-            ans = max(ans, dfs(i));
+            seen.assign(N, false); // Reset seen for each starting bomb
+            ans = max(ans, dfs(i, G, seen)); // Update maximum detonated bombs
+        }
+        return ans;
+    }
+
+private:
+    // Check if bomb i covers bomb j
+    static bool cover(const vector<vector<int>>& A, int i, int j) {
+        return pow((long)A[i][0] - A[j][0], 2) + pow((long)A[i][1] - A[j][1], 2) <= pow((long)A[i][2], 2);
+    }
+
+    // Depth-first search to count detonated bombs
+    int dfs(int u, vector<vector<int>>& G, vector<bool>& seen) {
+        seen[u] = true; // Mark current bomb as seen
+        int ans = 1; // Count the current bomb
+        for (int v : G[u]) {
+            if (seen[v]) continue; // Skip already seen bombs
+            ans += dfs(v, G, seen); // Recur for connected bombs
         }
         return ans;
     }
 };
+
+
 ```
