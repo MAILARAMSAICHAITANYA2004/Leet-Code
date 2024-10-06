@@ -55,31 +55,39 @@ This is better than the route of [1,2,2,2,5], where the maximum absolute differe
 
 ## Solution 1. Dijkstra
 
+The code implements Dijkstra's algorithm to find the minimum effort path in a grid. It initializes a distance matrix and 
+a priority queue, starting from the top-left corner with zero effort. It explores each cell, calculating the effort needed 
+to move to adjacent cells, updating distances, and prioritizing paths with lower efforts. The process continues until the 
+bottom-right corner is reached, returning the minimum effort, or until all paths are explored, returning -1 if no path exists.
+
 ```cpp
 // OJ: https://leetcode.com/problems/path-with-minimum-effort/
 // Author: github.com/lzl124631x
 // Time: O(MNlog(MN))
 // Space: O(MN)
+
 class Solution {
 public:
     int minimumEffortPath(vector<vector<int>>& A) {
-        int M = A.size(), N = A[0].size(), dirs[4][2] = {{0,1},{0,-1},{1,0},{-1,0}};
-        vector<vector<int>> dist(M, vector<int>(N, INT_MAX));
-        priority_queue<array<int, 3>, vector<array<int, 3>>, greater<>> pq;
+        int M = A.size(), N = A[0].size(), dirs[4][2] = {{0,1},{0,-1},{1,0},{-1,0}}; // Directions for moving up, down, left, right
+        vector<vector<int>> dist(M, vector<int>(N, INT_MAX)); // Stores minimum effort to reach each cell
+        priority_queue<array<int, 3>, vector<array<int, 3>>, greater<>> pq; // Min-heap to prioritize paths with less effort
         dist[0][0] = 0;
-        pq.push({ 0, 0, 0 });
+        pq.push({ 0, 0, 0 }); // Start from the top-left corner with 0 effort
+        
         while (pq.size()) {
-            auto [e, x, y] = pq.top();
+            auto [e, x, y] = pq.top(); // Current minimum effort, and the position (x, y)
             pq.pop();
-            if (e > dist[x][y]) continue;
-            if (x == M - 1 && y == N - 1) return dist[x][y];
-            for (auto &[dx, dy] : dirs) {
+            if (e > dist[x][y]) continue; // If this effort is not the smallest for (x, y), skip it
+            if (x == M - 1 && y == N - 1) return dist[x][y]; // If we reached the bottom-right corner, return the effort
+            
+            for (auto &[dx, dy] : dirs) { // Explore all 4 possible directions
                 int a = x + dx, b = y + dy;
-                if (a < 0 || b < 0 || a >= M || b >= N) continue;
-                int effort = max(e, abs(A[x][y] - A[a][b]));
-                if (effort >= dist[a][b]) continue;
-                dist[a][b] = effort;
-                pq.push({ effort, a, b });
+                if (a < 0 || b < 0 || a >= M || b >= N) continue; // Skip if out of bounds
+                int effort = max(e, abs(A[x][y] - A[a][b])); // Calculate the effort to move to the next cell
+                if (effort >= dist[a][b]) continue; // If the new effort is not better, skip this path
+                dist[a][b] = effort; // Update with the smaller effort
+                pq.push({ effort, a, b }); // Push the new state to the heap
             }
         }
         return -1;
