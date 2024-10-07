@@ -36,44 +36,108 @@
 
 ## Solution 1. DP Top-down
 
-Let `dp[i][k]` be whether we can reach `A[N-1]` from `A[i]` with `k` as the units of the last jump
-
-```
-dp[i][k] = OR( dp[f(i, k+j)][k+j] )
-        where j = -1,0,1 for i > 0; j = 0 for i == 0
-        where f(i, k) is the index that satisfies A[f(i,k)] = A[i] + k
-
-dp[N-1][k] = true
-```
-
-The answer is `dp[0][1]`.
-
-We just need to memoize the unreachable states.
+Base Case: If ind is 0, it returns 0 since there's no cost to stay at the first step.
+Memoization: If the cost to reach ind has already been computed (stored in dp), it returns that value to avoid redundant calculations.
+Jump Calculation: It computes the cost of jumping from the previous step (jumpOne) and from two steps back (jumpTwo), considering the height differences.
+Return Value: It stores and returns the minimum cost of the two possible jumps in the dp array.
 
 ```cpp
-// OJ: https://leetcode.com/problems/frog-jump/
-// Author: github.com/lzl124631x
-// Time: O(N^2)
+
+// Time: O(N)
 // Space: O(N)
-class Solution {
-public:
-    bool canCross(vector<int>& A) {
-        int N = A.size();
-        vector<unordered_set<int>> m(N);
-        function<bool(int, int)> dp = [&](int i, int k) {
-            if (i == N - 1) return true;
-            if (m[i].count(k)) return false;
-            int from = i == 0 ? 1 : k - 1, to = i == 0 ? 1 : k + 1;
-            for (int j = from; j <= to; ++j) {
-                int index = lower_bound(begin(A) + i + 1, end(A), A[i] + j) - begin(A);
-                if (index < N && A[index] == A[i] + j) {
-                    if (dp(index, j)) return true;
-                }
-            }
-            m[i].insert(k);
-            return false;
-        };
-        return dp(0, 1);
+
+int solve(int ind, vector<int>& height, vector<int>& dp) {
+    // Base case: no cost to reach the first step
+    if (ind == 0) return 0;  
+    
+    // Return the stored result if already computed
+    if (dp[ind] != -1) return dp[ind];  
+    
+    int jumpTwo = INT_MAX; // Initialize jumpTwo to maximum value for comparison
+
+    // Calculate the cost of jumping from the previous step
+    int jumpOne = solve(ind - 1, height, dp) + abs(height[ind] - height[ind - 1]);
+    
+    // Calculate the cost of jumping from two steps back if possible
+    if (ind > 1)
+        jumpTwo = solve(ind - 2, height, dp) + abs(height[ind] - height[ind - 2]);
+    
+    // Store the minimum cost to reach the current step in dp array
+    return dp[ind] = min(jumpOne, jumpTwo);  
+}
+
+```
+
+
+## Solution 2. DP Bottom-Up
+
+Initialization: It initializes a dp array to store the minimum cost to reach each step, with dp[0] set to 0 (no cost for the first step).
+Dynamic Programming Loop: For each step from 1 to n-1, it computes the cost of jumping from the previous step (jumpOne) and, if applicable, from two steps back (jumpTwo).
+Cost Calculation: It updates the dp array with the minimum of the two calculated costs for each step.
+Output: Finally, it prints the minimum cost to reach the last step, which is stored in dp[n-1].
+
+```cpp
+
+// Time: O(N)
+// Space: O(N)
+
+int main() {
+    vector<int> height{30, 10, 60, 10, 60, 50}; // Heights of the stairs
+    int n = height.size(); // Number of steps
+    vector<int> dp(n, -1); // DP array initialized to -1
+    dp[0] = 0; // No cost to stay at the first step
+
+    for (int ind = 1; ind < n; ind++) {
+        int jumpTwo = INT_MAX; // Initialize jumpTwo to maximum value
+        // Calculate cost to jump from the previous step
+        int jumpOne = dp[ind - 1] + abs(height[ind] - height[ind - 1]);
+        
+        // Calculate cost to jump from two steps back if applicable
+        if (ind > 1)
+            jumpTwo = dp[ind - 2] + abs(height[ind] - height[ind - 2]);
+
+        // Store the minimum cost in dp array
+        dp[ind] = min(jumpOne, jumpTwo);
     }
-};
+    
+    cout << dp[n - 1]; // Output the minimum cost to reach the last step
+}
+
+```
+
+## Solution 3. DP Space Optimization
+
+The code optimizes space complexity by using only two variables, prev and prev2, instead of a full dp array. This allows it to store the minimum costs to reach the 
+last two steps, reducing the space usage from O(n) to O(1) while still maintaining the same O(n) time complexity for calculating the minimum cost to reach the last step.
+
+```cpp
+
+// Time: O(N)
+// Space: O(1)
+
+int main() {
+    vector<int> height{30, 10, 60, 10, 60, 50}; // Heights of the stairs
+    int n = height.size(); // Number of steps
+    int prev = 0; // Minimum cost to reach the previous step
+    int prev2 = 0; // Minimum cost to reach the step before previous
+
+    for (int i = 1; i < n; i++) {
+        int jumpTwo = INT_MAX; // Initialize jumpTwo to maximum value
+        // Calculate cost to jump from the previous step
+        int jumpOne = prev + abs(height[i] - height[i - 1]);
+        
+        // Calculate cost to jump from two steps back if applicable
+        if (i > 1)
+            jumpTwo = prev2 + abs(height[i] - height[i - 2]);
+        
+        int cur_i = min(jumpOne, jumpTwo); // Current minimum cost
+        prev2 = prev; // Update prev2 to the previous step's cost
+        prev = cur_i; // Update prev to the current cost
+    }
+    
+    cout << prev; // Output the minimum cost to reach the last step
+}
+
+
+
 ```
