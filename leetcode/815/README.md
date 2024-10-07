@@ -50,59 +50,89 @@
 
 ## Solution 1. BFS
 
+approach :
+
+	Data Structures: It utilizes a map (stops) to link each bus stop to the buses that serve it. It also maintains a set (seen) to track visited stops and a set (busTaken) to avoid revisiting buses.
+	BFS Traversal: Starting from the source stop, it explores all reachable stops by traversing through available buses. For each stop, it checks if it matches the target.
+	Bus and Stop Management: It enqueues new stops while marking buses and stops as seen. Each complete level of BFS corresponds to taking an additional bus, and the process continues until the target is found or all possibilities are exhausted.
+	Output: If the target stop is reached, it returns the number of buses taken; otherwise, it returns -1 if there is no possible route.
+
 ```cpp
+
 // OJ: https://leetcode.com/problems/bus-routes/
 // Author: github.com/lzl124631x
 // Time: O(N) where N is the sum of lengths of elements in `A`
 // Space: O(N)
+
 class Solution {
 public:
     int numBusesToDestination(vector<vector<int>>& A, int source, int target) {
         int N = A.size(), step = 0;
-        unordered_map<int, vector<int>> stops; // stop -> all buses
+        unordered_map<int, vector<int>> stops; // Map stops to buses
         for (int i = 0; i < N; ++i) {
             for (int n : A[i]) stops[n].push_back(i);
         }
-        unordered_set<int> seen{source}, busTaken;
-        queue<int> q{{source}}; // queue containing stops
+        
+        unordered_set<int> seen{source}, busTaken; // Track seen stops and buses
+        queue<int> q{{source}}; // Queue for BFS
+        
         while (q.size()) {
-            int cnt = q.size();
+            int cnt = q.size(); // Number of stops to process
             while (cnt--) {
                 int u = q.front();
                 q.pop();
-                if (u == target) return step;
+                if (u == target) return step; // Found target
+                
+                // Process all buses from current stop
                 for (int bus : stops[u]) {
-                    if (busTaken.count(bus)) continue; // Don't revisit the same bus
+                    if (busTaken.count(bus)) continue; // Skip already taken buses
                     busTaken.insert(bus);
                     for (int v : A[bus]) {
-                        if (seen.count(v)) continue; // Don't revisit the same stop
-                        q.push(v);
+                        if (seen.count(v)) continue; // Skip already seen stops
+                        q.push(v); // Add new stop to queue
                         seen.insert(v);
                     }
                 }
             }
-            ++step;
+            ++step; // Increment bus count
         }
-        return -1;
+        return -1; // No route found
     }
 };
+
+
 ```
 
 ## Solution 2. BFS
 
+approach : 
+
+	Input: It takes a list of bus routes A, the source stop, and the target stop.
+	Initial Check: If the source is the same as the target, it returns 0 since no buses are needed.
+	Mapping Creation: It creates a mapping of each stop to the buses that serve it and initializes a queue with the buses that can be reached from the source.
+	Breadth-First Search (BFS): It performs a BFS, exploring each bus and its stops:
+    	For each bus, it checks if it reaches the target. If so, it returns the number of buses taken (steps).
+    	If a stop hasn't been visited, it adds it to the set of seen stops and pushes any new buses connected to that stop into the queue.
+
+Output: If the target cannot be reached, it returns -1.
+
 ```cpp
+
 // OJ: https://leetcode.com/problems/bus-routes
 // Author: github.com/lzl124631x
 // Time: O(N) where N is the sum of lengths of elements in `A`
 // Space: O(N)
+
 class Solution {
 public:
     int numBusesToDestination(vector<vector<int>>& A, int source, int target) {
-        if (source == target) return 0;
+        if (source == target) return 0; // Check if source is the same as target
         int N = A.size(), step = 1;
-        unordered_map<int, vector<int>> m; // mapping from stop index to indices of related buses
-        queue<int> q; // queue containing buses
-        unordered_set<int> seenBus, seenStop;
+        unordered_map<int, vector<int>> m; // Map stops to bus indices
+        queue<int> q; // Queue for buses
+        unordered_set<int> seenBus, seenStop; // Track seen buses and stops
+
+        // Populate the mapping and queue for buses from source stops
         for (int i = 0; i < N; ++i) {
             for (int n : A[i]) {
                 m[n].push_back(i);
@@ -112,25 +142,28 @@ public:
                 }
             }
         }
+
+        // BFS to find the shortest path
         while (q.size()) {
             int cnt = q.size();
             while (cnt--) {
                 int fromBus = q.front();
                 q.pop();
                 for (int fromStop : A[fromBus]) {
-                    if (seenStop.count(fromStop)) continue;
-                    if (fromStop == target) return step;
+                    if (seenStop.count(fromStop)) continue; // Skip seen stops
+                    if (fromStop == target) return step; // Found target
                     seenStop.insert(fromStop);
                     for (int toBus : m[fromStop]) {
-                        if (seenBus.count(toBus)) continue;
+                        if (seenBus.count(toBus)) continue; // Skip seen buses
                         seenBus.insert(toBus);
                         q.push(toBus);
                     }
                 }
             }
-            ++step;
+            ++step; // Increment bus count
         }
-        return -1;
+        return -1; // Target not reachable
     }
 };
+
 ```
