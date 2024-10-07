@@ -60,17 +60,16 @@
 
 ## Solution 1. BFS
 
-The algorithm uses BFS to explore the grid and find the shortest path for collecting all keys.
-It encodes the current position (x, y) and the set of collected keys into a unique state to avoid revisiting the same state.
-At each step, it explores the four possible directions (up, down, left, right), checking for valid moves (e.g., skipping walls and locked doors without keys).
-If a key is found, it is added to the set of collected keys, and the BFS continues until all keys are collected.
-The minimum number of steps to collect all keys is returned, or -1 if it's not possible.
+approach :
+	
+	The algorithm uses BFS to explore the grid and find the shortest path for collecting all keys.
+	It encodes the current position (x, y) and the set of collected keys into a unique state to avoid revisiting the same state.
+	At each step, it explores the four possible directions (up, down, left, right), checking for valid moves (e.g., skipping walls and locked doors without keys).
+	If a key is found, it is added to the set of collected keys, and the BFS continues until all keys are collected.
+	The minimum number of steps to collect all keys is returned, or -1 if it's not possible.
 
 ```cpp
-// OJ: https://leetcode.com/problems/shortest-path-to-get-all-keys/
-// Author: github.com/lzl124631x
-// Time: O(MN)
-// Space: O(MN)
+
 
 // OJ: https://leetcode.com/problems/shortest-path-to-get-all-keys/
 // Author: github.com/lzl124631x
