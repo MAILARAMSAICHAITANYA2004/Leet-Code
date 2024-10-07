@@ -35,15 +35,28 @@
 
 ## Solution 1.
 
+approach :
+
+	The function findCenter determines the center node of a star graph from a given list of edges E.
+    	Input: The edges are represented as pairs of nodes. For instance, if E contains [[a, b], [a, c]], it indicates that a is connected to both b and c.
+    	Logic: The center node is the one that appears in both edges. The function checks if the first node of the first edge (E[0][0]) is equal to either node of the second edge (E[1][0] or E[1][1]).
+    	Output: If it is, E[0][0] is the center; otherwise, E[0][1] is returned as the center node, ensuring the function always finds the node that connects to all other nodes.
+	This approach operates in constant time O(1)O(1) and uses constant space O(1)O(1).
+
 ```cpp
+
 // OJ: https://leetcode.com/problems/find-center-of-star-graph/
 // Author: github.com/lzl124631x
 // Time: O(1)
 // Space: O(1)
+
 class Solution {
 public:
     int findCenter(vector<vector<int>>& E) {
+        // Check if the first node of the first edge is the center
         return E[0][0] == E[1][0] || E[0][0] == E[1][1] ? E[0][0] : E[0][1];
     }
 };
+
+
 ```
