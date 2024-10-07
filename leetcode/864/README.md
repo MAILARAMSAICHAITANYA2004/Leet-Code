@@ -60,49 +60,81 @@
 
 ## Solution 1. BFS
 
+The algorithm uses BFS to explore the grid and find the shortest path for collecting all keys.
+It encodes the current position (x, y) and the set of collected keys into a unique state to avoid revisiting the same state.
+At each step, it explores the four possible directions (up, down, left, right), checking for valid moves (e.g., skipping walls and locked doors without keys).
+If a key is found, it is added to the set of collected keys, and the BFS continues until all keys are collected.
+The minimum number of steps to collect all keys is returned, or -1 if it's not possible.
+
 ```cpp
 // OJ: https://leetcode.com/problems/shortest-path-to-get-all-keys/
 // Author: github.com/lzl124631x
 // Time: O(MN)
 // Space: O(MN)
+
+// OJ: https://leetcode.com/problems/shortest-path-to-get-all-keys/
+// Author: github.com/lzl124631x
+// Time: O(MN)
+// Space: O(MN)
+
 class Solution {
+    // Encode state as a unique integer
     int getState(int x, int y, int keys) {
         return x * 10000 + y * 100 + keys;
     }
 public:
     int shortestPathAllKeys(vector<string>& A) {
-        int M = A.size(), N = A[0].size(), startX, startY, allLocks = 0, dirs[4][2] = {{0,1}, {0,-1}, {1,0}, {-1,0}}, step = 0;
+        int M = A.size(), N = A[0].size(), startX, startY, allLocks = 0;
+        // Direction vectors for moving up, down, left, right
+        int dirs[4][2] = {{0,1}, {0,-1}, {1,0}, {-1,0}}, step = 0;
         queue<int> q;
+
+        // Locate starting point and count all locks
         for (int i = 0; i < M; ++i) {
             for (int j = 0; j < N; ++j) {
                 if (A[i][j] == '@') startX = i, startY = j;
                 else if (A[i][j] >= 'A' && A[i][j] <= 'F') allLocks |= (1 << (A[i][j] - 'A'));
             }
         }
+
         int initState = getState(startX, startY, 0);
         q.emplace(initState);
         unordered_set<int> seen{initState};
+
+        // BFS to find the shortest path to collect all keys
         while (q.size()) {
             int cnt = q.size();
             while (cnt--) {
                 int state = q.front();
                 q.pop();
                 int x = state / 10000, y = state % 10000 / 100, keys = state % 100;
+                
+                // Check if all keys are collected
                 if (keys == allLocks) return step;
+
+                // Explore neighboring cells
                 for (auto &[dx, dy] : dirs) {
                     int a = x + dx, b = y + dy;
-                    if (a < 0 || a >= M || b < 0 || b >= N || A[a][b] == '#' || (isupper(A[a][b]) && (keys & (1 << (A[a][b] - 'A'))) == 0)) continue;
+
+                    // Check for valid moves and keys
+                    if (a < 0 || a >= M || b < 0 || b >= N || A[a][b] == '#' || 
+                        (isupper(A[a][b]) && (keys & (1 << (A[a][b] - 'A'))) == 0)) continue;
+
                     int newKeys = keys;
-                    if (islower(A[a][b])) newKeys |= (1 << (A[a][b] - 'a'));
+                    if (islower(A[a][b])) newKeys |= (1 << (A[a][b] - 'a')); // Collect the key
+
                     int newState = getState(a, b, newKeys);
+                    // Avoid revisiting states
                     if (seen.count(newState)) continue;
+
                     seen.insert(newState);
                     q.emplace(newState);
                 }
             }
-            ++step;
+            ++step; // Increment step count
         }
-        return -1;
+        return -1; // Return -1 if unable to collect all keys
     }
 };
+
 ```
