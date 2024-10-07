@@ -62,6 +62,14 @@
 
 ## Solution 1. BFS
 
+The updateBoard function simulates a Minesweeper game:
+
+    If a mine ('M') is clicked, it turns into 'X' and the game ends.
+    Otherwise, it checks the surrounding cells for mines.
+        If any mines are found nearby, it updates the current cell with the number of adjacent mines.
+        If no adjacent mines are found, it reveals the current cell ('B') and continues to reveal surrounding cells recursively.
+    The process uses a queue to manage the cells to explore, ensuring a breadth-first search for revealing neighboring cells.
+
 ```cpp
 // OJ: https://leetcode.com/problems/minesweeper/
 // Author: github.com/lzl124631x
@@ -71,16 +79,16 @@ class Solution {
 public:
     vector<vector<char>> updateBoard(vector<vector<char>>& A, vector<int>& click) {
         int M = A.size(), N = A[0].size();
-        queue<pair<int, int>> q{{{click[0], click[1]}}};
+        queue<pair<int, int>> q{{{click[0], click[1]}}}; // Initialize queue with the clicked cell
         while (q.size()) {
-            auto [x, y] = q.front();
+            auto [x, y] = q.front(); // Get the front element
             q.pop();
-            if (A[x][y] == 'M') {
+            if (A[x][y] == 'M') { // If mine, change to 'X'
                 A[x][y] = 'X';
                 continue;
             }
             int cnt = 0;
-            for (int dx = -1; dx <= 1; ++dx) {
+            for (int dx = -1; dx <= 1; ++dx) { // Count adjacent mines
                 for (int dy = -1; dy <= 1; ++dy) {
                     if (dx == 0 && dy == 0) continue;
                     int a = x + dx, b = y + dy;
@@ -88,16 +96,16 @@ public:
                     cnt += A[a][b] == 'M';
                 }
             }
-            if (cnt) A[x][y] = '0' + cnt;
-            else {
+            if (cnt) A[x][y] = '0' + cnt; // Mark the cell with the mine count
+            else { // No adjacent mines, reveal neighbors
                 A[x][y] = 'B';
                 for (int dx = -1; dx <= 1; ++dx) {
                     for (int dy = -1; dy <= 1; ++dy) {
                         if (dx == 0 && dy == 0) continue;
                         int a = x + dx, b = y + dy;
                         if (a < 0 || a >= M || b < 0 || b >= N || A[a][b] != 'E') continue;
-                        A[a][b] = '#';
-                        q.emplace(a, b);
+                        A[a][b] = '#'; // Mark as visited
+                        q.emplace(a, b); // Add to queue
                     }
                 }
             }
@@ -105,9 +113,19 @@ public:
         return A;
     }
 };
+
 ```
 
 ## Solution 2. DFS
+
+approach :
+
+    If the clicked cell is a mine ('M'), it is revealed as 'X'.
+    If not, the algorithm counts the neighboring mines around the clicked cell.
+    If there are neighboring mines, the cell is updated with the count.
+    If no neighboring mines, the cell is marked as 'B'.
+    The algorithm recursively explores and reveals adjacent empty ('E') cells.
+    This process continues until all safe areas are revealed.
 
 ```cpp
 // OJ: https://leetcode.com/problems/minesweeper/
@@ -119,7 +137,7 @@ public:
     vector<vector<char>> updateBoard(vector<vector<char>>& A, vector<int>& click) {
         int M = A.size(), N = A[0].size();
         function<void(int, int)> dfs = [&](int x, int y) {
-            if (A[x][y] == 'M') {
+            if (A[x][y] == 'M') { // If mine is clicked, mark as 'X'
                 A[x][y] = 'X';
                 return;
             }
@@ -129,24 +147,25 @@ public:
                     if (dx == 0 && dy == 0) continue;
                     int a = x + dx, b = y + dy;
                     if (a < 0 || a >= M || b < 0 || b >= N) continue;
-                    cnt += A[a][b] == 'M';
+                    cnt += A[a][b] == 'M'; // Count nearby mines
                 }
             }
-            if (cnt) A[x][y] = '0' + cnt;
+            if (cnt) A[x][y] = '0' + cnt; // Update with mine count
             else {
-                A[x][y] = 'B';
+                A[x][y] = 'B'; // No mines nearby, reveal surrounding cells
                 for (int dx = -1; dx <= 1; ++dx) {
                     for (int dy = -1; dy <= 1; ++dy) {
                         if (dx == 0 && dy == 0) continue;
                         int a = x + dx, b = y + dy;
                         if (a < 0 || a >= M || b < 0 || b >= N || A[a][b] != 'E') continue;
-                        dfs(a, b);
+                        dfs(a, b); // Recursively reveal
                     }
                 }
             }
         };
-        dfs(click[0], click[1]);
+        dfs(click[0], click[1]); // Start DFS from the clicked position
         return A;
     }
 };
+
 ```
