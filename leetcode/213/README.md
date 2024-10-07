@@ -31,36 +31,117 @@
 * [Non-negative Integers without Consecutive Ones (Hard)](https://leetcode.com/problems/non-negative-integers-without-consecutive-ones/)
 * [Coin Path (Hard)](https://leetcode.com/problems/coin-path/)
 
-## Solution 1. DP
+## Solution 1. DP 
 
 In this problem we can't directly use the solution of [198. House Robber (Easy)](https://leetcode.com/problems/house-robber/) becase the choice of robbing the first house could determine whether we can rob the last house.
 
-We can break the problem into two situations.
-
-1. We skip the first house. Then we can safely try robbing from house `1` to house `N - 1`.
-1. We rob the first house. Then we can safely try robbing from house `0` to house `N - 2`.
+Breaking the Circle: Since the first and last houses are adjacent, the circle is broken into two linear cases: one excluding the first house and another excluding the last house.
+Max Profit Calculation: The solve function computes the maximum sum for a linear arrangement using dynamic programming, tracking the maximum sum including or excluding each house.
+Final Result: The function robStreet calculates the maximum profit for both linear cases and returns the larger of the two.
 
 ```cpp
 // OJ: https://leetcode.com/problems/house-robber-ii/
 // Author: github.com/lzl124631x
 // Time: O(N)
-// Space: O(1)
+// Space: O(N)
 class Solution {
-    int rob(vector<int>& A, int start, int end) {
-        if (start == end) return 0;
-        if (start + 1 == end) return A[start];
-        int prev2 = 0, prev = 0;
-        for (int i = start; i < end; ++i) {
-            int cur = max(prev, A[i] + prev2);
-            prev2 = prev;
-            prev = cur;
-        }
-        return prev;
-    }
 public:
-    int rob(vector<int>& A) {
-        if (A.size() == 1) return A[0];
-        return max(rob(A, 1, A.size()), rob(A, 0, A.size() - 1));
+    long long int solve(vector<int>& arr) {
+        int n = arr.size();
+        long long int prev = arr[0]; // Max sum up to the previous house
+        long long int prev2 = 0; // Max sum up to two houses before
+        
+        for (int i = 1; i < n; i++) {
+            long long int pick = arr[i]; // Include current house
+            if (i > 1)
+                pick += prev2; // Add max sum from two houses back
+            long long int nonPick = 0 + prev; // Exclude current house
+            
+            // Store the max of picking or not picking the current house
+            long long int cur_i = max(pick, nonPick);
+            prev2 = prev;
+            prev = cur_i;
+        }
+        return prev; // Max sum possible up to the last house
+    }
+    
+    int rob(vector<int>& nums) {
+        int n = nums.size();
+        if (n == 1)
+            return nums[0]; // Special case: only one house
+        
+        vector<int> arr1, arr2;
+        
+        // Create two arrays excluding the first and last houses respectively
+        for (int i = 0; i < n; i++) {
+            if (i != 0) arr1.push_back(nums[i]); // Exclude first house
+            if (i != n - 1) arr2.push_back(nums[i]); // Exclude last house
+        }
+
+        // Max sum without first and without last houses
+        long long int ans1 = solve(arr1);
+        long long int ans2 = solve(arr2);
+        
+        // Return the maximum of the two possibilities
+        return max(ans1, ans2);
     }
 };
+
+
+```
+
+
+## Solution 2. DP Space Optimization
+
+The optimization in this solution revolves around reducing space complexity by using only two variables (prev and prev2) instead of an additional DP array:
+
+    Space Optimization: Instead of using a DP array to store results for each house, we only keep track of the last two results (prev and prev2). This saves space from O(n) to O(1).
+
+    Circular Condition Handling: Since the houses are arranged in a circle, we split the problem into two cases:
+        One excludes the first house (index 1 to n-1).
+        The other excludes the last house (index 0 to n-2).
+
+    Result: By solving both subproblems and returning the maximum result, the circular constraint is respected while maintaining an optimized space usage.
+
+```cpp
+
+// Time: O(N)
+// Space: O(1)
+
+class Solution {
+public:
+    long long int solve(int start, int end, vector<int>& nums) {
+        long long int prev = nums[start]; // Max sum up to the previous house
+        long long int prev2 = 0; // Max sum up to two houses before
+        
+        for (int i = start + 1; i <= end; i++) {
+            long long int pick = nums[i]; // Include current house
+            if (i > start + 1)
+                pick += prev2; // Add max sum from two houses back
+            long long int nonPick = 0 + prev; // Exclude current house
+            
+            // Store the max of picking or not picking the current house
+            long long int cur_i = max(pick, nonPick);
+            prev2 = prev;
+            prev = cur_i;
+        }
+        return prev; // Max sum possible up to the last house in range
+    }
+    
+    int rob(vector<int>& nums) {
+        int n = nums.size();
+        if (n == 1)
+            return nums[0]; // Special case: only one house
+        
+        // Calculate max sum excluding the first house (index 1 to n-1)
+        long long int ans1 = solve(1, n - 1, nums);
+        
+        // Calculate max sum excluding the last house (index 0 to n-2)
+        long long int ans2 = solve(0, n - 2, nums);
+        
+        return max(ans1, ans2); // Return the maximum of the two
+    }
+};
+
+
 ```
