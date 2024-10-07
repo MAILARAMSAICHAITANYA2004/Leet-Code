@@ -46,147 +46,163 @@ Total amount you can rob = 2 + 9 + 1 = 12.
 * [Coin Path (Hard)](https://leetcode.com/problems/coin-path/)
 * [Delete and Earn (Medium)](https://leetcode.com/problems/delete-and-earn/)
 
-## Solution 1. DP
+## Solution 1. DP Top-down
 
-For `nums[i]`, we have two options, rob or skip.
-
-Let `rob[i+1]` and `skip[i+1]` be the best outcome we can get with `house[0..i]` if we rob or skip the `house[i]` respectively.
-
-```cpp
-rob[i + 1] = nums[i] + skip[i] // If we rob at house[i], we must skip house[i-1]
-skip[i + 1] = max(rob[i - 1], skip[i - 1]) // If we skip house[i], we can pick the maximum from robbing or skipping house[i-1]
-```
+solveUtil is the recursive function that calculates the maximum sum up to index ind. It either picks the current element (and skips the next one) or skips the current element, returning the maximum of these two choices.
+The dp array is used to store previously computed results to avoid redundant calculations (memoization).
+solve initializes the dp array and starts the recursion from the last element in the array.
+The base cases handle when the index is 0 (only one element to pick) or less than 0 (invalid index).
 
 ```cpp
-// OJ: https://leetcode.com/problems/house-robber/
-// Author: github.com/lzl124631x
+
 // Time: O(N)
 // Space: O(N)
-class Solution {
-public:
-    int rob(vector<int>& A) {
-        int N = A.size();
-        vector<int> rob(N + 1), skip(N + 1);
-        for (int i = 0; i < N; ++i) {
-            rob[i + 1] = skip[i] + A[i];
-            skip[i + 1] = max(skip[i], rob[i]);
-        }
-        return max(rob[N], skip[N]);
-    }
-};
+
+
+#include <bits/stdc++.h>
+using namespace std;
+
+// Function to solve the problem using dynamic programming
+int solveUtil(int ind, vector<int>& arr, vector<int>& dp) {
+    // If the result for this index is already computed, return it
+    if (dp[ind] != -1)
+        return dp[ind];
+
+    // Base cases
+    if (ind == 0) 
+        return arr[ind];
+    if (ind < 0)  
+        return 0;
+
+    // Choose the current element or skip it, and take the maximum
+    int pick = arr[ind] + solveUtil(ind - 2, arr, dp); // Choosing the current element
+    int nonPick = 0 + solveUtil(ind - 1, arr, dp);      // Skipping the current element
+
+    // Store the result in the DP table and return it
+    return dp[ind] = max(pick, nonPick);
+}
+
+// Function to initiate the solving process
+int solve(int n, vector<int>& arr) {
+    vector<int> dp(n, -1); // Initialize the DP table with -1
+    return solveUtil(n - 1, arr, dp); // Start solving from the last element
+}
+
+int main() {
+    vector<int> arr{2, 1, 4, 9};
+    int n = arr.size();
+    
+    // Call the solve function and print the result
+    cout << solve(n, arr);
+
+    return 0;
+}
+
+
+
 ```
 
-**Space Optimization**:
+## Solution 2. DP Bottom-Up
 
-Since `rob[i+1]` and `skip[i+1]` are only dependent on `rob[i]`  and `skip[i]`, we can reduce the space complexity to `O(1)` by only storing the current `rob` and `skip`.
-
-So initially we have `rob = 0`, `skip = 0`, and for each `nums[i]`, we have 
-
-```
-rob2 = nums[i] + skip
-skip2 = max(rob, skip)
-```
-
-Then we can assign `rob2` back to `rob`, and `skip2` back to `skip`.
+solveUtil is the function that fills the dp array, where dp[i] represents the maximum sum that can be obtained from the first i+1 elements.
+At each index i, the code either picks the current element (and adds the value from dp[i-2]) or does not pick it (taking the value from dp[i-1]), and stores the maximum of these two choices.
+The result is stored in dp[n-1], which contains the maximum sum possible without picking adjacent elements.
 
 ```cpp
-// OJ: https://leetcode.com/problems/house-robber/
-// Author: github.com/lzl124631x
-// Time: O(N)
-// Space: O(1)
 
-class Solution {
-public:
-    int rob(vector<int>& A) {
-        int rob = 0, skip = 0;
+// Time: O(N)
+// Space: O(N)
+
+
+#include <bits/stdc++.h>
+using namespace std;
+
+// Function to solve the problem using dynamic programming
+int solveUtil(int n, vector<int>& arr, vector<int>& dp) {
+    // Base case: If there are no elements in the array, return 0
+    dp[0] = arr[0];
+    
+    // Iterate through the elements of the array
+    for (int i = 1; i < n; i++) {
+        // Calculate the maximum value by either picking the current element
+        // or not picking it (i.e., taking the maximum of dp[i-2] + arr[i] and dp[i-1])
+        int pick = arr[i];
+        if (i > 1)
+            pick += dp[i - 2];
+        int nonPick = dp[i - 1];
         
-        for (int n : A) {
-            int newRob = n + skip;
-            int newSkip = max(rob, skip);
-            rob = newRob;
-            skip = newSkip;
-        }
+        // Store the maximum value in the dp array
+        dp[i] = max(pick, nonPick);
+    }
+    
+    // The last element of the dp array will contain the maximum sum
+    return dp[n - 1];
+}
+
+// Function to initiate the solving process
+int solve(int n, vector<int>& arr) {
+    vector<int> dp(n, 0); // Initialize dp array with 0
+    return solveUtil(n, arr, dp);
+}
+
+int main() {
+    vector<int> arr{2, 1, 4, 9};
+    int n = arr.size();
+    
+    // Call the solve function and print the result
+    cout << solve(n, arr);
+
+    return 0;
+}
+
+
+```
+
+## Solution 3. DP Space Optimization
+
+Variable Usage: Instead of using a full dp array to store maximum sums up to each index, the code utilizes only two variables, prev and prev2. This allows the program to maintain the necessary state information without storing all previous results.
+Iterative Calculation: The function iteratively calculates the maximum sum at each index by considering whether to pick the current element or not, updating prev and prev2 accordingly. This avoids the overhead of additional memory allocation and simplifies the logic.
+Efficiency: This results in a more efficient solution both in terms of space and time while maintaining the same O(n) time complexity, as it processes each element of the array only once.
+
+```cpp
+
+// Time: O(N)
+// Space: O(1)
+
+
+#include <bits/stdc++.h>
+using namespace std;
+
+// Function to solve the problem using dynamic programming
+int solve(int n, vector<int>& arr) {
+    int prev = arr[0];   // Initialize the maximum sum ending at the previous element
+    int prev2 = 0;       // Initialize the maximum sum ending two elements ago
+    
+    for (int i = 1; i < n; i++) {
+        int pick = arr[i];  // Maximum sum if we pick the current element
+        if (i > 1)
+            pick += prev2;  // Add the maximum sum two elements ago
         
-        return max(rob, skip);
+        int nonPick = 0 + prev;  // Maximum sum if we don't pick the current element
+        
+        int cur_i = max(pick, nonPick);  // Maximum sum ending at the current element
+        prev2 = prev;   // Update the maximum sum two elements ago
+        prev = cur_i;   // Update the maximum sum ending at the previous element
     }
-};
+    
+    return prev;  // Return the maximum sum
+}
 
-```
+int main() {
+    vector<int> arr{2, 1, 4, 9};
+    int n = arr.size();
+    
+    // Call the solve function and print the result
+    cout << solve(n, arr);
 
-Further more, since `skip` is the only one required by both `rob2` and `skip2`, we can do the following:
+    return 0;
+}
 
-```
-tmp = skip
-skip = max(rob, skip)
-rob = tmp + nums[i]
-```
 
-```cpp
-// OJ: https://leetcode.com/problems/house-robber/
-// Author: github.com/lzl124631x
-// Time: O(N)
-// Space: O(1)
-class Solution {
-public:
-    int rob(vector<int>& nums) {
-        int rob = 0, skip = 0;
-        for (int n : nums) {
-            int tmp = skip;
-            skip = max(rob, skip);
-            rob = tmp + n;
-        }
-        return max(rob, skip);
-    }
-};
-```
 
-## Solution 2. DP
-
-Let `dp[i]` be the best outcome we can get at `nums[i]`.
-
-```
-dp[i] = max(
-            dp[i - 1],             // skip the current house
-            dp[i - 2] + nums[i]    // rob the current house
-)
-```
-
-So `dp[i]` is only dependent on the previous 2 values. We can reduce the space complexity to `O(1)` by storing the previous two values:
-
-```
-cur = max(
-            prev,
-            prev2 + nums[i]
-)
-```
-
-```cpp
-// OJ: https://leetcode.com/problems/house-robber/
-// Author: github.com/lzl124631x
-// Time: O(N)
-// Space: O(1)
-class Solution {
-public:
-    int rob(vector<int>& nums) {
-        int prev = 0, prev2 = 0;
-        for (int n : nums) {
-            int cur = max(prev, prev2 + n);
-            prev2 = prev;
-            prev = cur;
-        }
-        return prev;
-    }
-};
-```
-
-```py
-# OJ: https://leetcode.com/problems/house-robber/
-# Author: github.com/lzl124631x
-# Time: O(N)
-# Space: O(1)
-class Solution:
-    def rob(self, nums: List[int]) -> int:
-        prev, cur = 0, 0
-        for n in nums: prev, cur = cur, max(cur, prev + n)
-        return cur
 ```
