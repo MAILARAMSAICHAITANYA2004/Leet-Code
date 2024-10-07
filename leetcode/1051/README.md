@@ -64,6 +64,10 @@ public:
 
 ## Solution 2. Count Sort
 
+approach :
+
+	hghg
+
 ```cpp
 // OJ: https://leetcode.com/problems/height-checker/
 // Author: github.com/lzl124631x
